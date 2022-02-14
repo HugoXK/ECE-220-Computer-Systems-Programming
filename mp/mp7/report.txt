@@ -1,0 +1,574 @@
+PUT YOUR MP7 REPORT IN THIS FILE.
+
+/*Function printRev*/
+	In this program, print_reverse function reverse the input can print them followed by the length.
+1.Identifying the bug:
+	correct executions
+		1)test cases:"123"
+		2)the desired output:"123" reversed is "321" (length 3)
+		3)the actual output:"123" reversed is "321" (length 3)
+	erroneous executions
+		1)test cases:"1234"
+		2)the desired output:"1234" reversed is "4321" (length 4)
+		3)the actual output:"1234" reversed is "4321" (length 32771)
+2.Trace the bug:(1)the GDB commands,2)the results GDB produced)
+	In the terminal directory student@ece220vm:~/kex5/mp/mp7/printRev$, do the following GDB operations
+	gdb
+	a)gdb prev
+	b)GDB command:b pr_buggy.c:41
+	GDB result: Breakpoint 1 at 0x721: file pr_buggy.c, line 41.
+	c)GDB command:b pr_buggy.c:52
+	GDB result: Breakpoint 2 at 0x74a: file pr_buggy.c, line 52.
+	d)GDB command:r "1234"
+	GDB result: Starting program: /home/student/kex5/mp/mp7/printRev/prev "1234"
+		    9 8 7 6 5 4 3 2 1 0
+     		    What's on the stack now?
+
+
+		    Breakpoint 1, print_reverse (s=0x7fffffffe255 "") at pr_buggy.c:41
+		    41	        return rest;
+	e)GDB command: display rest
+	GDB result: 1: rest = 32767
+		(gdb) c
+		Continuing.
+	f)then do many times GDB command:c, shown as follows for short.
+		Breakpoint 2, print_reverse (s=0x7fffffffe254 "4") at pr_buggy.c:52
+		52	    return (rest + 1);
+		1: rest = 32767
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, print_reverse (s=0x7fffffffe253 "34") at pr_buggy.c:52
+		52	    return (rest + 1);
+		1: rest = 32768
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, print_reverse (s=0x7fffffffe252 "234") at pr_buggy.c:52
+		52	    return (rest + 1);
+		1: rest = 32769
+
+	Analysis about the results GDB produced and analysis about the relationship between the results and the erroneous behavior:
+		By observing the commands and results above, it is obvious that when the first time executes the function to the breakpoint, the value of variable rest should be 0. However, what we get is 32767 (bits), thus the initialization of it is exactly what ignored. And this bug leads to the wrong results in length.
+
+3.Analysis of the bug:
+	1)the possible root cause of the bug:
+	By observing the commands and results above, it is obvious that when the first time executes the function to the breakpoint, the value of variable rest should be 0. However, what we get is 32767 (bits), thus the initialization of it is exactly what ignored. And this bug leads to the wrong results in length. The root cause of the bug is in line 4 shown as below because there is no initialization.
+
+1		int32_t
+2		print_reverse (const char* s)
+3		{
+4		    int32_t rest;
+5
+6		    // For an empty string, simply return 0.  This test is the stopping
+7		    // condition for the recursion.
+8		    if ('\0' == *s) {
+9			return rest;
+10		    }
+11
+12		    // Recurse on the rest of the string, printing it and finding its length.
+13		    rest = print_reverse (s + 1);
+14
+15		    // Print this call's character (all later characters already printed).
+16		    printf ("%c", *s);
+17
+18		    // Length of this string is the length of the rest of the string
+19		    // (from the recursive call) plus one.
+20		    return (rest + 1);
+21		}
+	2)how to fix the bug:
+		change the code in line 4: "int32_t rest;" into "int32_t rest = 0;", which means initializing the varible rest to zero as the 
+		comments in the pr_buggy.c said, "// For an empty string, simply return 0. This test is the stoppin condition for the recursion."
+
+
+/*Function primeNumber*/
+	In this program, is_prime is a function written to judge prime number under 1000 using divides_evenly function, and is_prime itself is where the bug exists.
+1.Identifying the bug:
+	Using GDB tool to execute the program, the desired output and the actual output are shown as follow:
+		1)the desired output:2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83...
+		2)the actual output:2,3,4,5,7,9,11,13,17,19,23,25,29,31,37,41,43,47,49,53,59,61,67,71,73,79,83...
+	correct executions:2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83...
+	erroneous executions:4,9,25,49...(all numbers that can be divided into prime * prime)
+2.Trace the bug:(1)the GDB commands,2)the results GDB produced)
+	In the terminal directory student@ece220vm:~/kex5/mp/mp7/primeNumber$, do the following GDB operations:
+	gdb
+	a)file primeNumber
+	GDB result: Reading symbols from primeNumber...(no debugging symbols found)...done.
+	b)GDB command:b is_prime
+	GDB result: Breakpoint 1 at 0x6c1
+	c)GDB command:b divides_evenly
+	GDB result: Breakpoint 2 at 0x697
+	d)GDB command:r
+	GDB result: Starting program: /home/student/kex5/mp/mp7/primeNumber/primeNumber 
+
+		    Breakpoint 1, 0x00005555555546c1 in is_prime ()
+	e)then do many times GDB command:c, shown as follows for short.
+		(gdb) c
+		Continuing.
+		2 is prime.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+		3 is prime.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+		4 is prime.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+		5 is prime.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+		7 is prime.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+		9 is prime.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+		11 is prime.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+		13 is prime.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+		17 is prime.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+		19 is prime.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+		23 is prime.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 1, 0x00005555555546c1 in is_prime ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, 0x0000555555554697 in divides_evenly ()
+		(gdb) c
+		Continuing.
+		25 is prime.
+
+	Analysis about the results GDB produced and analysis about the relationship between the results and the erroneous behavior:
+		By observing the commands and results above, I find that:
+			for 4, it should execute divides_evenly 1 time, but it only execute 0 time. And 4 is mistakenly considered as a prime number.
+			for 9, it should execute divides_evenly 2 times, but it only execute 1 time. And 9 is mistakenly considered as a prime number.
+			for 25, it should execute divides_evenly 3 times, but it only execute 2 time. And 25 is mistakenly considered as a prime number.
+		Thus, I suspect the end condition for "for" loop is wrong.
+
+3.Analysis of the bug:
+	1)the possible root cause of the bug: 
+		By observing the commands and results above, I find that:
+			for 4, it should execute divides_evenly 1 time, but it only execute 0 time.
+			for 9, it should execute divides_evenly 2 times, but it only execute 1 time.
+			for 25, it should execute divides_evenly 3 times, but it only execute 2 time.
+		Thus, I suspect the end condition for "for" loop is wrong. The root cause of the bug is in line 10 shown as below because of the wrong symbol.
+
+		A reasonable guess (the possible wrong is_prime function):
+
+1		#include <stdint.h>       /* Include C's standard integer header file.      */
+2		#include <stdio.h>        /* Include C's standard I/O header file.          */	
+3		#include <math.h>         /* Include C's math library for sqrt() function   */
+4		static int32_t
+5		is_prime (int32_t num)
+6		{
+7  		  int32_t divisor;
+8		  float root = sqrt (num);
+9  		  // Check all possible divisors from 2 to num - 1.
+10  		  for (divisor = 2; root > divisor; divisor++) {
+11  		      if (divides_evenly (divisor, num)) {
+12			    return 0;
+13			}
+14  		  }
+15
+16		    return 1;
+17		}
+	2)a guess about how to fix the bug:
+		change the code in line 10: for (divisor = 2; root > divisor; divisor++) {
+		into for (divisor = 2; root >= divisor; divisor++) {
+		which means use >= instead of using > when judge whether quit the loop.
+
+/*Function sort*/
+	In this program, the main function written to sort input numbers using heap sort algorithm with heapify function, printArray function and swap function, and the main function itself is where the bug exists.
+1.Identifying the bug:
+	erroneous executions
+		1)test cases:
+		20
+		1 22 3 45 51 96 117 18 29 13 9 100 41 23 12 99 15 19 58 97
+		2)the desired output:1 3 9 12 13 15 18 19 22 23 29 41 45 51 58 96 97 99 100 117
+		3)the actual output:1 3 3 9 12 13 15 18 19 22 23 29 41 45 51 58 96 97 99 100 
+	correct executions
+		1)test cases:
+		20
+		1 22 3 45 51 96 117 18 29 13 9 100 41 23 12 99 15 19 58 97
+		2)the desired output:1 3 9 12 13 15 18 19 22 23 29 41 45 51 58 96 97 99 100 117
+		3)the actual output:1 3 9 12 13 15 18 19 22 23 29 41 45 51 58 96 97 99 100 117
+2.Trace the bug:(1)the GDB commands,2)the results GDB produced)
+	In the terminal directory student@ece220vm:~/kex5/mp/mp7/sort$, do the following GDB operations
+	gdb
+	a)GDB command:file sort
+	GDB result: Reading symbols from sort...done.
+	b)GDB command:list
+	GDB result:
+		1	#include <stdio.h>
+		2	
+		3	void swap(int * a, int* b){
+		4	int t = *a; 
+		5	*a = *b;  
+		6	*b = t; 
+		7	}
+		8	
+		9	/* A utility function to print array of size n */
+		10	void printArray(int* arr, int size)
+	c)GDB command:list
+	GDB result:
+		11	{
+		12	    int i;
+		13	    for (i = 0; i < size; ++i)
+		14	        printf("%d ", arr[i]);
+		15	    printf("\n");
+		16	}
+		17	 
+		18	void heapify(int arr[], int n, int i)
+		19	{
+		20	    int largest = i;  // Initialize largest as root
+	d)GDB command:list
+	GDB result:
+		21	    int l = 2*i + 1;  // left = 2*i + 1
+		22	    int r = 2*i + 2;  // right = 2*i + 2
+		23	 
+		24	    // If left child is larger than root
+		25	    if (l < n && arr[l] > arr[largest])
+		26	        largest = l;
+		27	 
+		28	    // If right child is larger than largest so far
+		29	    if (r < n && arr[r] > arr[largest])
+		30	        largest = r;
+	e)GDB command:list
+	GDB result:
+		31	 
+		32	    // If largest is not root
+		33	    if (largest != i)
+		34	    {
+		35	        swap(&arr[i], &arr[largest]);
+		36	 
+		37	        // Recursively heapify the affected sub-tree
+		38	        heapify(arr, n, largest);
+		39	    }
+		40	}
+	f)GDB command:b rand
+	GDB result: Breakpoint 1 at 0x7e0
+
+	/* Problem happens here for the meaningless random number */
+
+	g)GDB command:b swap
+	GDB result: Breakpoint 1 at 0x916: file sort.c, line 4.
+	h)GDB command:b sort.c:35
+	Breakpoint 2 at 0xa43: file sort.c, line 35.
+	i)GDB command:b sort.c:32
+	Breakpoint 3 at 0xa3b: file sort.c, line 32.
+	j)GDB command:run test1.txt
+	GDB result:
+		Starting program: /home/student/kex5/mp/mp7/sort/sort test1.txt
+
+		Breakpoint 3, heapify (arr=0x5555557584a0, n=20, i=9) at sort.c:33
+		33	    if (largest != i)
+	k)GDB command:display *arr@21
+	GDB result:
+		1: *arr@21 = {1, 22, 3, 45, 51, 96, 117, 18, 29, 13, 9, 100, 41, 23, 12, 99, 15, 19, 58, 97, 3}
+	l)GDB command:display largest
+	GDB result:
+		2: largest = 19
+	m)GDB command:display i
+	GDB result:
+		3: i = 9
+	n)then do many times GDB command:c, shown as follows for short.
+		(gdb) c
+		Continuing.
+
+		Breakpoint 1, rand () at rand.c:26
+		26	in rand.c
+		(gdb) c
+		Continuing.
+
+		Breakpoint 1, swap (a=0x5555557584c4, b=0x5555557584ec) at sort.c:4
+		4	int t = *a; 
+		(gdb) display *a
+		4: *a = 13
+		(gdb) display *b
+		5: *b = 97
+		(gdb) c
+		Continuing.
+
+		Breakpoint 3, heapify (arr=0x5555557584a0, n=20, i=19) at sort.c:33
+		33	    if (largest != i)
+		1: *arr@21 = {1, 22, 3, 45, 51, 96, 117, 18, 29, 97, 9, 100, 41, 23, 12, 99, 
+		  15, 19, 58, 13, 3}
+		2: largest = 19
+		3: i = 19
+
+ 	/*Omit a lot of intermediate values that don't matter for simplicity*/
+	
+		(gdb) c
+		Continuing.
+
+		Breakpoint 1, swap (a=0x5555557584a0, b=0x5555557584f0) at sort.c:4
+		4	int t = *a; 
+		4: *a = 117
+		5: *b = 3
+		(gdb) c
+		Continuing.
+
+	/* Problem happens here for the meaningless swap */
+
+		Breakpoint 3, heapify (arr=0x5555557584a0, n=20, i=0) at sort.c:33
+		33	    if (largest != i)
+		1: *arr@21 = {3, 99, 100, 58, 97, 96, 23, 45, 29, 51, 9, 1, 41, 3, 12, 18, 15, 
+		  19, 22, 13, 117}
+		2: largest = 2
+		3: i = 0
+		(gdb) c
+		Continuing.
+
+		Breakpoint 2, heapify (arr=0x5555557584a0, n=20, i=0) at sort.c:35
+		35	        swap(&arr[i], &arr[largest]);
+		1: *arr@21 = {3, 99, 100, 58, 97, 96, 23, 45, 29, 51, 9, 1, 41, 3, 12, 18, 15, 
+		  19, 22, 13, 117}
+		2: largest = 2
+		3: i = 0
+		(gdb) c
+		Continuing.
+
+		Breakpoint 1, swap (a=0x5555557584a0, b=0x5555557584a8) at sort.c:4
+		4	int t = *a; 
+		4: *a = 3
+		5: *b = 100
+		(gdb) c
+		Continuing.
+
+		Breakpoint 3, heapify (arr=0x5555557584a0, n=20, i=2) at sort.c:33
+		33	    if (largest != i)
+		1: *arr@21 = {100, 99, 3, 58, 97, 96, 23, 45, 29, 51, 9, 1, 41, 3, 12, 18, 15, 
+		  19, 22, 13, 117}
+		2: largest = 5
+		3: i = 2
+
+	/*Omit a lot of intermediate values that don't matter for simplicity*/
+
+		(gdb) c
+		Continuing.
+
+		Breakpoint 3, heapify (arr=0x5555557584a0, n=0, i=0) at sort.c:33
+		33	    if (largest != i)
+		1: *arr@21 = {1, 3, 3, 9, 12, 13, 15, 18, 19, 22, 23, 29, 41, 45, 51, 58, 96, 
+		  97, 99, 100, 117}
+		2: largest = 0
+		3: i = 0
+		(gdb) 
+		Continuing.
+		1 3 3 9 12 13 15 18 19 22 23 29 41 45 51 58 96 97 99 100 
+		[Inferior 1 (process 2949) exited normally]
+
+	Analysis about the results GDB produced and analysis about the relationship between the results and the erroneous behavior:
+		At first, the program calls a random function and store the value at array[n] (where n is the number of valid input), and array[n] here is beyond the valid area of the array, or namely overstep the valid boundary. And while doing swap operation, the program swap it with the value in the valid area (namely, array[i], i < n) and continue the heap sort. Thus, unless the random number is exactly the largest number in the valid input, or the number will repeat emergency one time and the largest value will vanish, thus leading to the wrong result.
+
+
+3.Analysis of the bug:
+the possible root cause of the bug: 
+	a) An meaningless swap: 
+		Swaping a number beyond the valid area of the array with a number in the valid part of the array makes no sense in the heap sort algorithm.
+	b) An meaningless random number: 
+		Generating a random number at array[n] (where n is the number of valid input) according to input makes no sense in the heap sort algorithm.
